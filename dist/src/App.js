@@ -59,7 +59,6 @@ const levels = [
     }
 ];
 const GameCanvas = () => {
-    console.log('GameCanvas rendering'); // Debug
     const [score, setScore] = useState(0);
     const [level, setLevel] = useState(0);
     const [gameOver, setGameOver] = useState(false);
@@ -72,11 +71,25 @@ const GameCanvas = () => {
         window.location.reload();
     };
     useEffect(() => {
-        console.log('GameCanvas useEffect'); // Debug
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        // Scale canvas for iPhone 11
+        const scaleFactor = Math.min(window.innerWidth / 800, (window.innerHeight - 100) / 600);
         canvas.width = 800;
         canvas.height = 600;
+        canvas.style.width = `${800 * scaleFactor}px`;
+        canvas.style.height = `${600 * scaleFactor}px`;
+        // Load sprites
+        const playerSprite = new Image();
+        playerSprite.src = '/assets/player.png';
+        const platformSprite = new Image();
+        platformSprite.src = '/assets/platform.png';
+        const artifactSprite = new Image();
+        artifactSprite.src = '/assets/artifact.png';
+        const shadowSprite = new Image();
+        shadowSprite.src = '/assets/shadow.png';
+        const background = new Image();
+        background.src = '/assets/background.jpg';
         const player = {
             x: 50,
             y: canvas.height - 50,
@@ -89,7 +102,7 @@ const GameCanvas = () => {
             grounded: false,
             animationFrame: 0
         };
-        const currentLevel = levels[level];
+        let currentLevel = levels[level];
         let { platforms, artifacts, shadows } = currentLevel;
         const keys = { right: false, left: false, jump: false };
         // Keyboard controls
@@ -139,7 +152,7 @@ const GameCanvas = () => {
         rightButton?.addEventListener('touchend', () => handleTouchEnd('right'));
         jumpButton?.addEventListener('touchstart', () => handleTouchStart('jump'));
         jumpButton?.addEventListener('touchend', () => handleTouchEnd('jump'));
-        // Telegram MainButton for Jump
+        // Telegram MainButton
         tg.MainButton.setText('Jump').show().onClick(() => {
             keys.jump = true;
             setTimeout(() => keys.jump = false, 100);
@@ -212,10 +225,10 @@ const GameCanvas = () => {
                     player.x = 50;
                     player.y = canvas.height - 50;
                     player.dy = 0;
-                    const nextLevel = levels[level + 1];
-                    platforms = nextLevel.platforms;
-                    artifacts = nextLevel.artifacts;
-                    shadows = nextLevel.shadows;
+                    currentLevel = levels[level + 1];
+                    platforms = currentLevel.platforms;
+                    artifacts = currentLevel.artifacts;
+                    shadows = currentLevel.shadows;
                 }
                 else {
                     endGame();
@@ -225,27 +238,27 @@ const GameCanvas = () => {
             requestAnimationFrame(update);
         };
         const draw = () => {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#4a4a4a';
+            // Draw background
+            ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+            // Draw platforms
             for (let platform of platforms) {
-                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                ctx.drawImage(platformSprite, platform.x, platform.y, platform.width, platform.height);
             }
-            ctx.fillStyle = `rgba(255, 68, 68, ${0.7 + Math.sin(player.animationFrame) * 0.3})`;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-            ctx.fillStyle = '#ffffff';
+            // Draw player with animation
+            ctx.globalAlpha = 0.7 + Math.sin(player.animationFrame) * 0.3;
+            ctx.drawImage(playerSprite, player.x, player.y, player.width, player.height);
+            ctx.globalAlpha = 1;
+            // Draw artifacts
             for (let artifact of artifacts) {
                 if (!artifact.collected) {
-                    ctx.beginPath();
-                    ctx.arc(artifact.x + artifact.width / 2, artifact.y + artifact.height / 2, artifact.width / 2, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.drawImage(artifactSprite, artifact.x, artifact.y, artifact.width, artifact.height);
                 }
             }
-            ctx.fillStyle = '#000000';
+            // Draw shadows with animation
             for (let shadow of shadows) {
                 const scaledWidth = shadow.width * shadow.animationScale;
                 const scaledHeight = shadow.height * shadow.animationScale;
-                ctx.fillRect(shadow.x - (scaledWidth - shadow.width) / 2, shadow.y - (scaledHeight - shadow.height) / 2, scaledWidth, scaledHeight);
+                ctx.drawImage(shadowSprite, shadow.x - (scaledWidth - shadow.width) / 2, shadow.y - (scaledHeight - shadow.height) / 2, scaledWidth, scaledHeight);
             }
         };
         const endGame = () => {
@@ -278,8 +291,17 @@ const GameCanvas = () => {
                 console.error('Error fetching high score:', error);
             }
         };
-        update();
-        fetchHighScore();
+        // Wait for images to load
+        Promise.all([
+            new Promise(resolve => { playerSprite.onload = resolve; }),
+            new Promise(resolve => { platformSprite.onload = resolve; }),
+            new Promise(resolve => { artifactSprite.onload = resolve; }),
+            new Promise(resolve => { shadowSprite.onload = resolve; }),
+            new Promise(resolve => { background.onload = resolve; })
+        ]).then(() => {
+            update();
+            fetchHighScore();
+        });
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
@@ -291,13 +313,10 @@ const GameCanvas = () => {
             jumpButton?.removeEventListener('touchend', () => handleTouchEnd('jump'));
         };
     }, [gameOver, score, level]);
-    return (_jsxs("div", { className: "flex flex-col items-center justify-center h-screen relative", children: [_jsxs("div", { className: "absolute top-4 left-4 text-white text-xl font-bold", children: ["Score: ", score, " | Level: ", level + 1, " | High Score: ", highScore] }), _jsx("canvas", { id: "gameCanvas", className: "border border-gray-700" }), _jsxs("div", { className: "absolute bottom-4 left-4 flex space-x-4", children: [_jsx("button", { id: "leftButton", className: "bg-gray-700 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl", children: "\u2190" }), _jsx("button", { id: "rightButton", className: "bg-gray-700 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl", children: "\u2192" })] }), _jsx("div", { className: "absolute bottom-4 right-4", children: _jsx("button", { id: "jumpButton", className: "bg-red-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl", children: "\u2191" }) }), gameOver && (_jsxs("div", { className: "absolute bg-black bg-opacity-80 p-8 rounded-lg text-center", children: [_jsx("h2", { className: "text-3xl text-red-600 mb-4", children: "Game Over" }), _jsxs("p", { className: "text-white mb-4", children: ["Final Score: ", score] }), _jsx("button", { onClick: restartGame, className: "bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700", children: "Restart" })] }))] }));
+    return (_jsxs("div", { className: "flex flex-col items-center justify-center min-h-screen bg-black font-creepy", children: [_jsxs("div", { className: "absolute top-4 left-4 text-glow text-lg sm:text-xl", children: ["Score: ", score, " | Level: ", level + 1, " | High Score: ", highScore] }), _jsx("canvas", { id: "gameCanvas", className: "border-4 border-gray-800 rounded-lg shadow-glow" }), _jsxs("div", { className: "absolute bottom-4 left-4 flex space-x-4", children: [_jsx("button", { id: "leftButton", className: "bg-gray-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow", children: _jsx("img", { src: "/assets/left-arrow.png", alt: "Left", className: "w-8 h-8" }) }), _jsx("button", { id: "rightButton", className: "bg-gray-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow", children: _jsx("img", { src: "/assets/right-arrow.png", alt: "Right", className: "w-8 h-8" }) })] }), _jsx("div", { className: "absolute bottom-4 right-4", children: _jsx("button", { id: "jumpButton", className: "bg-red-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow", children: _jsx("img", { src: "/assets/jump-arrow.png", alt: "Jump", className: "w-8 h-8" }) }) }), gameOver && (_jsxs("div", { className: "absolute bg-black bg-opacity-90 p-6 sm:p-8 rounded-lg text-center border-2 border-red-800 shadow-glow", children: [_jsx("h2", { className: "text-2xl sm:text-3xl text-red-600 mb-4 font-creepy", children: "Game Over" }), _jsxs("p", { className: "text-glow mb-4", children: ["Final Score: ", score] }), _jsx("button", { onClick: restartGame, className: "bg-red-900 text-glow px-4 py-2 rounded hover:bg-red-800 shadow-glow", children: "Restart" })] }))] }));
 };
 const App = () => {
-    console.log('App rendering'); // Debug
-    return (_jsx("div", { className: "bg-gray-900 min-h-screen", children: _jsx(GameCanvas, {}) }));
+    return (_jsx("div", { className: "bg-black min-h-screen", children: _jsx(GameCanvas, {}) }));
 };
-// Updated to modern ReactDOM.createRoot
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(_jsx(App, {}));
-console.log('ReactDOM.createRoot called'); // Debug
