@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "Horror platformer Telegram Mini App",
   "main": "dist/server.js",
+  "type": "module",
   "scripts": {
-    "start": "ts-node server.ts",
+    "start": "node --loader ts-node/esm server.ts",
+    "start:alt": "ts-node-esm server.ts",
     "build": "tsc",
     "build:frontend": "vite build",
     "serve": "node dist/server.js",

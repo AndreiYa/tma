@@ -7,11 +7,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "jsx": "react-jsx",
     "outDir": "./dist",
-    "lib": ["DOM", "ESNext"],
+    "lib": ["ESNext"],
     "noEmit": false,
     "declaration": true
   },
-  "include": ["src/**/*", "server.ts", "public/telegram-web-app.js"]
+  "include": ["server.ts"]
 }
