@@ -1,0 +1,22 @@
+{
+  "presets": [
+    ["@babel/preset-env", {
+      "targets": "> 0.25%, not dead",
+      "modules": false
+    }],
+    "@babel/preset-react",
+    "@babel/preset-typescript"
+  ],
+  "plugins": [
+    ["transform-imports", {
+      "react": {
+        "transform": "React.${member}",
+        "preventFullImport": false
+      },
+      "react-dom": {
+        "transform": "ReactDOM",
+        "preventFullImport": true
+      }
+    }]
+  ]
+}
