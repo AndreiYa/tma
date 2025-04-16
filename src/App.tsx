@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import TelegramWebApp from './telegram';
 
-// Типы
 interface Player {
     x: number;
     y: number;
@@ -52,7 +51,6 @@ interface Keys {
     jump: boolean;
 }
 
-// Telegram Web App
 const tg = TelegramWebApp;
 tg.ready();
 tg.expand();
@@ -136,24 +134,6 @@ const GameCanvas: React.FC = () => {
         canvas.style.width = `${800 * scaleFactor}px`;
         canvas.style.height = `${600 * scaleFactor}px`;
         console.log(`Canvas scaled: ${canvas.style.width}x${canvas.style.height}`);
-
-        // Load sprites with error handling
-        const playerSprite = new Image();
-        playerSprite.src = '/assets/player.png';
-        const platformSprite = new Image();
-        platformSprite.src = '/assets/platform.png';
-        const artifactSprite = new Image();
-        artifactSprite.src = '/assets/artifact.png';
-        const shadowSprite = new Image();
-        shadowSprite.src = '/assets/shadow.png';
-        const background = new Image();
-        background.src = '/assets/background.jpg';
-
-        // Debug image loading
-        [playerSprite, platformSprite, artifactSprite, shadowSprite, background].forEach(img => {
-            img.onerror = () => console.error(`Failed to load image: ${img.src}`);
-            img.onload = () => console.log(`Loaded image: ${img.src}`);
-        });
 
         const player: Player = {
             x: 50,
@@ -315,81 +295,42 @@ const GameCanvas: React.FC = () => {
 
         const draw = () => {
             console.log('Drawing canvas frame');
-            // Clear canvas
-            ctx.fillStyle = '#000';
+
+            // Background
+            ctx.fillStyle = '#1a1a1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw background (fallback to dark gray)
-            if (background.complete && background.naturalWidth) {
-                ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
-                console.log('Background drawn');
-            } else {
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                console.log('Background fallback');
-            }
-
-            // Draw platforms (fallback to gray)
+            // Platforms
+            ctx.fillStyle = '#666';
             for (let platform of platforms) {
-                if (platformSprite.complete && platformSprite.naturalWidth) {
-                    ctx.drawImage(platformSprite, platform.x, platform.y, platform.width, platform.height);
-                    console.log('Platform sprite drawn');
-                } else {
-                    ctx.fillStyle = '#666';
-                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-                    console.log('Platform fallback');
-                }
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
             }
 
-            // Draw player with animation (fallback to red)
+            // Player with animation
             ctx.globalAlpha = 0.7 + Math.sin(player.animationFrame) * 0.3;
-            if (playerSprite.complete && playerSprite.naturalWidth) {
-                ctx.drawImage(playerSprite, player.x, player.y, player.width, player.height);
-                console.log('Player sprite drawn');
-            } else {
-                ctx.fillStyle = '#f00';
-                ctx.fillRect(player.x, player.y, player.width, player.height);
-                console.log('Player fallback');
-            }
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
             ctx.globalAlpha = 1;
 
-            // Draw artifacts (fallback to white)
+            // Artifacts
+            ctx.fillStyle = '#fff';
             for (let artifact of artifacts) {
                 if (!artifact.collected) {
-                    if (artifactSprite.complete && artifactSprite.naturalWidth) {
-                        ctx.drawImage(artifactSprite, artifact.x, artifact.y, artifact.width, artifact.height);
-                        console.log('Artifact sprite drawn');
-                    } else {
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(artifact.x, artifact.y, artifact.width, artifact.height);
-                        console.log('Artifact fallback');
-                    }
+                    ctx.fillRect(artifact.x, artifact.y, artifact.width, artifact.height);
                 }
             }
 
-            // Draw shadows with animation (fallback to black)
+            // Shadows with animation
+            ctx.fillStyle = '#000';
             for (let shadow of shadows) {
                 const scaledWidth = shadow.width * shadow.animationScale;
                 const scaledHeight = shadow.height * shadow.animationScale;
-                if (shadowSprite.complete && shadowSprite.naturalWidth) {
-                    ctx.drawImage(
-                        shadowSprite,
-                        shadow.x - (scaledWidth - shadow.width) / 2,
-                        shadow.y - (scaledHeight - shadow.height) / 2,
-                        scaledWidth,
-                        scaledHeight
-                    );
-                    console.log('Shadow sprite drawn');
-                } else {
-                    ctx.fillStyle = '#000';
-                    ctx.fillRect(
-                        shadow.x - (scaledWidth - shadow.width) / 2,
-                        shadow.y - (scaledHeight - shadow.height) / 2,
-                        scaledWidth,
-                        scaledHeight
-                    );
-                    console.log('Shadow fallback');
-                }
+                ctx.fillRect(
+                    shadow.x - (scaledWidth - shadow.width) / 2,
+                    shadow.y - (scaledHeight - shadow.height) / 2,
+                    scaledWidth,
+                    scaledHeight
+                );
             }
         };
 
@@ -424,7 +365,6 @@ const GameCanvas: React.FC = () => {
             }
         };
 
-        // Start update loop even if images fail
         console.log('Starting game loop');
         update();
         fetchHighScore();
@@ -450,41 +390,23 @@ const GameCanvas: React.FC = () => {
             <div className="absolute bottom-4 left-4 flex space-x-4">
                 <button
                     id="leftButton"
-                    className="bg-gray-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
+                    className="bg-gray-900 bg-opacity-70 text-white w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
                 >
-                    <img
-                        src="/assets/left-arrow.png"
-                        alt="Left"
-                        className="w-8 h-8"
-                        onError={() => console.error('Left arrow image failed to load')}
-                        onLoad={() => console.log('Left arrow image loaded')}
-                    />
+                    ←
                 </button>
                 <button
                     id="rightButton"
-                    className="bg-gray-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
+                    className="bg-gray-900 bg-opacity-70 text-white w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
                 >
-                    <img
-                        src="/assets/right-arrow.png"
-                        alt="Right"
-                        className="w-8 h-8"
-                        onError={() => console.error('Right arrow image failed to load')}
-                        onLoad={() => console.log('Right arrow image loaded')}
-                    />
+                    →
                 </button>
             </div>
             <div className="absolute bottom-4 right-4">
                 <button
                     id="jumpButton"
-                    className="bg-red-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
+                    className="bg-red-900 bg-opacity-70 text-white w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
                 >
-                    <img
-                        src="/assets/jump-arrow.png"
-                        alt="Jump"
-                        className="w-8 h-8"
-                        onError={() => console.error('Jump arrow image failed to load')}
-                        onLoad={() => console.log('Jump arrow image loaded')}
-                    />
+                    ↑
                 </button>
             </div>
             {gameOver && (
