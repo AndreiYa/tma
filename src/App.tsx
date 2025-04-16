@@ -125,6 +125,7 @@ const GameCanvas: React.FC = () => {
     };
 
     useEffect(() => {
+        console.log('Initializing GameCanvas');
         const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
@@ -134,8 +135,9 @@ const GameCanvas: React.FC = () => {
         canvas.height = 600;
         canvas.style.width = `${800 * scaleFactor}px`;
         canvas.style.height = `${600 * scaleFactor}px`;
+        console.log(`Canvas scaled: ${canvas.style.width}x${canvas.style.height}`);
 
-        // Load sprites
+        // Load sprites with error handling
         const playerSprite = new Image();
         playerSprite.src = '/assets/player.png';
         const platformSprite = new Image();
@@ -146,6 +148,12 @@ const GameCanvas: React.FC = () => {
         shadowSprite.src = '/assets/shadow.png';
         const background = new Image();
         background.src = '/assets/background.jpg';
+
+        // Debug image loading
+        [playerSprite, platformSprite, artifactSprite, shadowSprite, background].forEach(img => {
+            img.onerror = () => console.error(`Failed to load image: ${img.src}`);
+            img.onload = () => console.log(`Loaded image: ${img.src}`);
+        });
 
         const player: Player = {
             x: 50,
@@ -306,37 +314,82 @@ const GameCanvas: React.FC = () => {
         };
 
         const draw = () => {
-            // Draw background
-            ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+            console.log('Drawing canvas frame');
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw platforms
-            for (let platform of platforms) {
-                ctx.drawImage(platformSprite, platform.x, platform.y, platform.width, platform.height);
+            // Draw background (fallback to dark gray)
+            if (background.complete && background.naturalWidth) {
+                ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+                console.log('Background drawn');
+            } else {
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                console.log('Background fallback');
             }
 
-            // Draw player with animation
-            ctx.globalAlpha = 0.7 + Math.sin(player.animationFrame) * 0.3;
-            ctx.drawImage(playerSprite, player.x, player.y, player.width, player.height);
-            ctx.globalAlpha = 1;
-
-            // Draw artifacts
-            for (let artifact of artifacts) {
-                if (!artifact.collected) {
-                    ctx.drawImage(artifactSprite, artifact.x, artifact.y, artifact.width, artifact.height);
+            // Draw platforms (fallback to gray)
+            for (let platform of platforms) {
+                if (platformSprite.complete && platformSprite.naturalWidth) {
+                    ctx.drawImage(platformSprite, platform.x, platform.y, platform.width, platform.height);
+                    console.log('Platform sprite drawn');
+                } else {
+                    ctx.fillStyle = '#666';
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    console.log('Platform fallback');
                 }
             }
 
-            // Draw shadows with animation
+            // Draw player with animation (fallback to red)
+            ctx.globalAlpha = 0.7 + Math.sin(player.animationFrame) * 0.3;
+            if (playerSprite.complete && playerSprite.naturalWidth) {
+                ctx.drawImage(playerSprite, player.x, player.y, player.width, player.height);
+                console.log('Player sprite drawn');
+            } else {
+                ctx.fillStyle = '#f00';
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+                console.log('Player fallback');
+            }
+            ctx.globalAlpha = 1;
+
+            // Draw artifacts (fallback to white)
+            for (let artifact of artifacts) {
+                if (!artifact.collected) {
+                    if (artifactSprite.complete && artifactSprite.naturalWidth) {
+                        ctx.drawImage(artifactSprite, artifact.x, artifact.y, artifact.width, artifact.height);
+                        console.log('Artifact sprite drawn');
+                    } else {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(artifact.x, artifact.y, artifact.width, artifact.height);
+                        console.log('Artifact fallback');
+                    }
+                }
+            }
+
+            // Draw shadows with animation (fallback to black)
             for (let shadow of shadows) {
                 const scaledWidth = shadow.width * shadow.animationScale;
                 const scaledHeight = shadow.height * shadow.animationScale;
-                ctx.drawImage(
-                    shadowSprite,
-                    shadow.x - (scaledWidth - shadow.width) / 2,
-                    shadow.y - (scaledHeight - shadow.height) / 2,
-                    scaledWidth,
-                    scaledHeight
-                );
+                if (shadowSprite.complete && shadowSprite.naturalWidth) {
+                    ctx.drawImage(
+                        shadowSprite,
+                        shadow.x - (scaledWidth - shadow.width) / 2,
+                        shadow.y - (scaledHeight - shadow.height) / 2,
+                        scaledWidth,
+                        scaledHeight
+                    );
+                    console.log('Shadow sprite drawn');
+                } else {
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(
+                        shadow.x - (scaledWidth - shadow.width) / 2,
+                        shadow.y - (scaledHeight - shadow.height) / 2,
+                        scaledWidth,
+                        scaledHeight
+                    );
+                    console.log('Shadow fallback');
+                }
             }
         };
 
@@ -371,17 +424,10 @@ const GameCanvas: React.FC = () => {
             }
         };
 
-        // Wait for images to load
-        Promise.all([
-            new Promise(resolve => { playerSprite.onload = resolve; }),
-            new Promise(resolve => { platformSprite.onload = resolve; }),
-            new Promise(resolve => { artifactSprite.onload = resolve; }),
-            new Promise(resolve => { shadowSprite.onload = resolve; }),
-            new Promise(resolve => { background.onload = resolve; })
-        ]).then(() => {
-            update();
-            fetchHighScore();
-        });
+        // Start update loop even if images fail
+        console.log('Starting game loop');
+        update();
+        fetchHighScore();
 
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
@@ -406,13 +452,25 @@ const GameCanvas: React.FC = () => {
                     id="leftButton"
                     className="bg-gray-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
                 >
-                    <img src="/assets/left-arrow.png" alt="Left" className="w-8 h-8" />
+                    <img
+                        src="/assets/left-arrow.png"
+                        alt="Left"
+                        className="w-8 h-8"
+                        onError={() => console.error('Left arrow image failed to load')}
+                        onLoad={() => console.log('Left arrow image loaded')}
+                    />
                 </button>
                 <button
                     id="rightButton"
                     className="bg-gray-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
                 >
-                    <img src="/assets/right-arrow.png" alt="Right" className="w-8 h-8" />
+                    <img
+                        src="/assets/right-arrow.png"
+                        alt="Right"
+                        className="w-8 h-8"
+                        onError={() => console.error('Right arrow image failed to load')}
+                        onLoad={() => console.log('Right arrow image loaded')}
+                    />
                 </button>
             </div>
             <div className="absolute bottom-4 right-4">
@@ -420,7 +478,13 @@ const GameCanvas: React.FC = () => {
                     id="jumpButton"
                     className="bg-red-900 bg-opacity-70 text-glow w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-glow"
                 >
-                    <img src="/assets/jump-arrow.png" alt="Jump" className="w-8 h-8" />
+                    <img
+                        src="/assets/jump-arrow.png"
+                        alt="Jump"
+                        className="w-8 h-8"
+                        onError={() => console.error('Jump arrow image failed to load')}
+                        onLoad={() => console.log('Jump arrow image loaded')}
+                    />
                 </button>
             </div>
             {gameOver && (
